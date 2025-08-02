@@ -265,6 +265,8 @@ function restart_gost() {
     else
         print_error "gost 服务重启失败，请检查服务状态。"
     fi
+    print_info "gost 服务状态："
+    systemctl status gost
     read -p "按回车返回主菜单..."
     main_menu
 }
