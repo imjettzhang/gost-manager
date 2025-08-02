@@ -17,33 +17,31 @@ function main_menu() {
     echo "      gost 节点管理      "
     echo "========================="
     echo "1. 安装 gost"
-    echo "2. 更新 gost"
-    echo "3. 卸载 gost"
+    echo "2. 卸载 gost"
     echo "————————————"
-    echo "4. 启动 gost"
-    echo "5. 停止 gost"
-    echo "6. 重启 gost"
+    echo "3. 启动 gost"
+    echo "4. 停止 gost"
+    echo "5. 重启 gost"
     echo "————————————"
-    echo "7. 新增gost转发配置"
-    echo "8. 查看现有gost配置"
-    echo "9. 删除一则gost配置"
+    echo "6. 新增配置"
+    echo "7. 查看配置"
+    echo "8. 删除配置"
     echo "————————————"
-    echo "10. gost定时重启配置"
-    echo "11. 自定义TLS证书配置"
+    echo "9. 定时重启"
+    echo "10. 自定义TLS证书"
     echo "0. 退出"
     read -p "请选择操作: " choice
     case $choice in
         1) install_gost ;;
-        2) update_gost ;;
-        3) uninstall_gost ;;
-        4) start_gost ;;
-        5) stop_gost ;;
-        6) restart_gost ;;
-        7) add_gost_config ;;
-        8) view_gost_config ;;
-        9) delete_gost_config ;;
-        10) schedule_gost_restart ;;
-        11) custom_tls_config ;;
+        2) uninstall_gost ;;
+        3) start_gost ;;
+        4) stop_gost ;;
+        5) restart_gost ;;
+        6) add_gost_config ;;
+        7) view_gost_config ;;
+        8) delete_gost_config ;;
+        9) schedule_gost_restart ;;
+        10) custom_tls_config ;;
         0) exit 0 ;;
         *) echo "无效选择"; read -p "按回车继续..."; main_menu ;;
     esac
@@ -149,12 +147,7 @@ function install_gost() {
 }
 
 
-# 更新 gost
-function update_gost() {
-    # 更新 gost 到最新版本
-    echo "正在更新 gost 到最新版本..."
-    
-}
+
 
 # 卸载 gost
 function uninstall_gost() {
@@ -175,19 +168,35 @@ function uninstall_gost() {
         echo "已删除 /usr/local/bin/gost"
     fi
 
+    # 删除 gm 软链接
+    if [ -f /usr/local/bin/gm ]; then
+        rm -f /usr/local/bin/gm
+        echo "已删除 /usr/local/bin/gm"
+    fi
+
     # 删除配置文件和目录
     if [ -d /etc/gost ]; then
         rm -rf /etc/gost
         echo "已删除 /etc/gost 配置目录"
     fi
 
+    # 删除脚本目录（支持家目录和当前目录）
+    if [ -d "$HOME/gost-manager-main" ]; then
+        rm -rf "$HOME/gost-manager-main"
+        echo "已删除 $HOME/gost-manager-main 脚本目录"
+    elif [ -d "./gost-manager-main" ]; then
+        rm -rf "./gost-manager-main"
+        echo "已删除 ./gost-manager-main 脚本目录"
+    fi
+
     # 验证卸载结果
-    if ! command -v gost >/dev/null 2>&1 && [ ! -f /usr/local/bin/gost ]; then
-        echo "gost 卸载完成。"
+    if ! command -v gost >/dev/null 2>&1 && [ ! -f /usr/local/bin/gost ] && [ ! -f /usr/local/bin/gm ]; then
+        echo "gost 及相关脚本和软链接已全部卸载完成。"
     else
-        echo "gost 卸载失败，请手动检查 /usr/local/bin/gost 是否已删除。"
+        echo "部分文件未能成功删除，请手动检查。"
     fi
 }
+
 
 # 启动 gost
 function start_gost() {
