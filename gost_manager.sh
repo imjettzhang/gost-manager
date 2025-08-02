@@ -86,8 +86,13 @@ function install_gost() {
 
     check_sys  # 设置 $bit
 
+
+    echo "bit: $bit"
+
     GOST_URL="https://github.com/ginuerzh/gost/releases/download/v${GOST_VERSION}/gost-linux-${bit}-${GOST_VERSION}.gz"
 
+    echo "GOST_URL: $GOST_URL"
+    
     # 检查是否已安装
     if command -v gost >/dev/null 2>&1; then
         INSTALLED_VERSION=$(gost -V 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
