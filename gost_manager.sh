@@ -140,6 +140,8 @@ function install_gost() {
     if command -v gost >/dev/null 2>&1; then
         echo "gost 安装成功，版本信息如下："
         gost -V
+        # 创建 gost systemd 服务文件
+        create_gost_service
     else
         echo "gost 安装失败！"
         return 1
@@ -256,7 +258,31 @@ function check_root() {
     fi
 }
 
+function create_gost_service() {
+    SERVICE_FILE="/etc/systemd/system/gost.service"
+    GOST_BIN="/usr/local/bin/gost"
+    CONFIG_FILE="/etc/gost/config.json"
 
+    echo "正在创建 gost systemd 服务文件..."
+
+    cat <<EOF | sudo tee "$SERVICE_FILE" > /dev/null
+[Unit]
+Description=GOST Proxy Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=$GOST_BIN -C $CONFIG_FILE
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+
+    sudo systemctl daemon-reload
+    echo "gost 服务文件已创建：$SERVICE_FILE"
+    echo "你可以使用 'systemctl start gost' 启动服务。"
+}
 
 
 # 启动主菜单
