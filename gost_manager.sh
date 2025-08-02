@@ -215,8 +215,13 @@ function stop_gost() {
 
 # 重启 gost
 function restart_gost() {
-    # 重启 gost 服务
     echo "正在重启 gost 服务..."
+    sudo systemctl restart gost
+    if [ $? -eq 0 ]; then
+        echo "gost 服务已成功重启。"
+    else
+        echo "gost 服务重启失败，请检查服务状态。"
+    fi
 }
 
 # 新增gost转发配置
@@ -297,6 +302,8 @@ EOF
 
     sudo systemctl daemon-reload
     echo "gost 服务已创建"
+    restart_gost
+    echo "gost 服务已启动"
 }
 
 
