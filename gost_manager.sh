@@ -181,7 +181,12 @@ function uninstall_gost() {
         echo "已删除 /etc/gost 配置目录"
     fi
 
-    echo "gost 卸载完成。"
+    # 验证卸载结果
+    if ! command -v gost >/dev/null 2>&1 && [ ! -f /usr/local/bin/gost ]; then
+        echo "gost 卸载完成。"
+    else
+        echo "gost 卸载失败，请手动检查 /usr/local/bin/gost 是否已删除。"
+    fi
 }
 
 # 启动 gost
