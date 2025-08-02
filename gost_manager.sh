@@ -67,6 +67,14 @@ function check_sys() {
 
 # 安装 gost 2.11.2（自动适配架构）
 function install_gost() {
+    # 检查是否已安装
+    if command -v gost >/dev/null 2>&1; then
+        INSTALLED_VERSION=$(gost -V 2>&1 | grep -oE '[0-9]+\\.[0-9]+\\.[0-9]+')
+        echo "检测到 gost 已安装，版本：$INSTALLED_VERSION"
+        echo "如需重新安装，请先卸载或手动删除 /usr/local/bin/gost"
+        return 0
+    fi
+
     GOST_VERSION="2.11.2"
     INSTALL_PATH="/usr/local/bin/gost"
     TEMP_DIR="/tmp/gost_install"
