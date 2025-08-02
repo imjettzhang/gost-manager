@@ -20,14 +20,11 @@ function main_menu() {
     else
         GOST_STATUS="\033[31m未安装\033[0m"
     fi
-
     echo "========================="
     echo "      GOST 节点管理      "
     echo "========================="
-    echo -e "1. 安装 gost（$GOST_STATUS）"
+    echo "1. 安装 gost $GOST_STATUS"
     echo "2. 卸载 gost"
-    echo "3. 启动 gost"
-    echo "4. 停止 gost"
     echo "5. 重启 gost"
     echo "6. 新增规则"
     echo "7. 删除规则"
