@@ -23,7 +23,7 @@ function main_menu() {
     echo "========================="
     echo "      GOST 节点管理      "
     echo "========================="
-    echo "1. 安装 gost $GOST_STATUS"
+    echo -e "1. 安装 gost（$GOST_STATUS）"
     echo "2. 卸载 gost"
     echo "5. 重启 gost"
     echo "6. 新增规则"
