@@ -17,9 +17,8 @@ function main_menu() {
     echo "2. 卸载 gost"
     echo "5. 重启 gost"
     echo "6. 新增规则"
-    echo "7. 查看规则"
-    echo "8. 删除规则"
-    echo "9. 查看日志"
+    echo "7. 删除规则"
+    echo "8. 查看日志"
     echo "0. 退出"
     read -p "请选择操作: " choice
     case $choice in
@@ -29,9 +28,8 @@ function main_menu() {
         4) stop_gost ;;
         5) restart_gost ;;
         6) add_gost_rules ;;
-        7) view_gost_rules ;;
-        8) delete_gost_rules ;;
-        9) view_gost_logs ;;
+        7) delete_gost_rules ;;
+        8) view_gost_logs ;;
         0) exit 0 ;;
         *) echo "无效选择"; read -p "按回车继续..."; main_menu ;;
     esac
