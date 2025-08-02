@@ -9,7 +9,7 @@ wget https://raw.githubusercontent.com/imjettzhang/gost-manager/main/setup.sh -O
 
 ```
 
-安装完成后，可直接使用 `gost` 命令启动 gost 管理脚本。
+安装完成后，可直接使用 `gm` 命令启动 gm 管理脚本。
 
 
 ## 说明
