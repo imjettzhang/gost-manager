@@ -84,41 +84,61 @@ function install_gost() {
     GOST_VERSION="2.11.2"
     INSTALL_PATH="/usr/local/bin/gost"
     TEMP_DIR="/tmp/gost_install"
-
     check_sys  # 设置 $bit
-
     GOST_URL="https://github.com/ginuerzh/gost/releases/download/v${GOST_VERSION}/gost-linux-${bit}-${GOST_VERSION}.gz"
-
+    
     # 清理之前的临时文件
     rm -rf "$TEMP_DIR"
     mkdir -p "$TEMP_DIR"
-
+    
     echo "正在下载 gost $GOST_VERSION [$bit]..."
     if ! wget --no-check-certificate -O "$TEMP_DIR/gost.gz" "$GOST_URL"; then
         echo "gost 下载失败，请检查网络连接或手动下载。"
         return 1
     fi
-
+    
     echo "正在解压 gost..."
     cd "$TEMP_DIR"
-    
+   
     if ! gunzip -f gost.gz; then
         echo "gost 解压失败！"
         return 1
     fi
-
+   
+    # 查找实际的可执行文件 - 针对 gost 的目录结构
+    # gost 解压后通常是 gost-linux-架构-版本/ 目录，里面有 gost-linux-架构 可执行文件
+    GOST_BINARY=$(find . -name "gost-linux-*" -type f | head -1)
     
-    # 查找实际的可执行文件
-    GOST_BINARY=$(find . -name "gost-linux-*" -type f -executable | head -1)
+    if [ -z "$GOST_BINARY" ]; then
+        # 备用方案：查找任何可执行文件
+        GOST_BINARY=$(find . -type f -executable | head -1)
+    fi
     
+    if [ -z "$GOST_BINARY" ]; then
+        # 最后方案：查找目录中的文件（可能权限还没设置）
+        GOST_BINARY=$(find . -type f ! -name "*.gz" | grep -E "(gost|GOST)" | head -1)
+    fi
+    
+    # 检查是否找到了文件
+    if [ -z "$GOST_BINARY" ] || [ ! -f "$GOST_BINARY" ]; then
+        echo "错误：找不到 gost 可执行文件！"
+        echo "临时目录内容："
+        ls -la
+        return 1
+    fi
+   
     # 复制到安装目录
     echo "正在复制 $GOST_BINARY 执行文件到安装目录..."
-    cp "$GOST_BINARY" "$INSTALL_PATH"
+    if ! cp "$GOST_BINARY" "$INSTALL_PATH"; then
+        echo "复制文件失败！"
+        return 1
+    fi
+    
     chmod +x "$INSTALL_PATH"
-
+    
     # 清理临时文件
     rm -rf "$TEMP_DIR"
-
+    
     if command -v gost >/dev/null 2>&1; then
         echo "gost 安装成功，版本信息如下："
         gost -V
