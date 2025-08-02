@@ -87,22 +87,8 @@ function install_gost() {
     check_sys  # 设置 $bit
 
 
-    echo "bit: $bit"
-
     GOST_URL="https://github.com/ginuerzh/gost/releases/download/v${GOST_VERSION}/gost-linux-${bit}-${GOST_VERSION}.gz"
 
-    echo "GOST_URL: $GOST_URL"
-    
-    # 检查是否已安装
-    if command -v gost >/dev/null 2>&1; then
-        INSTALLED_VERSION=$(gost -V 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-        if [ "$INSTALLED_VERSION" == "$GOST_VERSION" ]; then
-            echo "gost $GOST_VERSION 已安装，无需重复安装。"
-            return 0
-        else
-            echo "检测到已安装 gost 版本 $INSTALLED_VERSION，将覆盖安装 $GOST_VERSION。"
-        fi
-    fi
 
     echo "正在下载 gost $GOST_VERSION [$bit]..."
     if ! wget --no-check-certificate -O /tmp/gost.gz "$GOST_URL"; then
