@@ -71,7 +71,6 @@ function install_gost() {
     if command -v gost >/dev/null 2>&1; then
         INSTALLED_VERSION=$(gost -V 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
         echo "检测到 gost 已安装，版本：$INSTALLED_VERSION"
-        echo "如需重新安装，请先卸载或手动删除 /usr/local/bin/gost"
         return 0
     fi
 
