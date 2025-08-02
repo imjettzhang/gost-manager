@@ -15,16 +15,11 @@ function main_menu() {
     echo "========================="
     echo "1. 安装 gost"
     echo "2. 卸载 gost"
-    echo "————————————"
-    echo "3. 启动 gost"
-    echo "4. 停止 gost"
     echo "5. 重启 gost"
-    echo "————————————"
     echo "6. 新增规则"
     echo "7. 查看规则"
     echo "8. 删除规则"
-    echo "————————————"
-    echo "9. 定时重启"
+    echo "9. 查看日志"
     echo "0. 退出"
     read -p "请选择操作: " choice
     case $choice in
@@ -36,7 +31,7 @@ function main_menu() {
         6) add_gost_rules ;;
         7) view_gost_rules ;;
         8) delete_gost_rules ;;
-        9) schedule_gost_restart ;;
+        9) view_gost_logs ;;
         0) exit 0 ;;
         *) echo "无效选择"; read -p "按回车继续..."; main_menu ;;
     esac
@@ -198,15 +193,26 @@ function uninstall_gost() {
 
 # 启动 gost
 function start_gost() {
-    # 启动 gost 服务
     echo "正在启动 gost 服务..."
+    sudo systemctl start gost
+    if [ $? -eq 0 ]; then
+        echo "gost 服务已启动。"
+    else
+        echo "gost 服务启动失败，请检查服务状态。"
+    fi
 }
 
 # 停止 gost
 function stop_gost() {
-    # 停止 gost 服务
     echo "正在停止 gost 服务..."
+    sudo systemctl stop gost
+    if [ $? -eq 0 ]; then
+        echo "gost 服务已停止。"
+    else
+        echo "gost 服务停止失败，请检查服务状态。"
+    fi
 }
+
 
 # 重启 gost
 function restart_gost() {
@@ -217,6 +223,13 @@ function restart_gost() {
     else
         echo "gost 服务重启失败，请检查服务状态。"
     fi
+}
+
+
+# 查看 gost 实时日志
+function view_gost_logs() {
+    echo "正在显示 gost 实时日志（按 Ctrl+C 退出）..."
+    sudo journalctl -u gost -f
 }
 
 # 新增gost转发配置
@@ -404,8 +417,10 @@ EOF
 
     sudo systemctl daemon-reload
     echo "gost 服务已创建"
+    # 设置开机自启动
+    enable_gost_autostart
+    # 重启 gost 服务
     restart_gost
-    echo "gost 服务已启动"
 }
 
 # 选择协议
@@ -531,6 +546,22 @@ EOF
     # 重启 gost 服务
     restart_gost
 
+}
+
+# 设置开机自启动
+function enable_gost_autostart() {
+    # 检查 systemd 服务文件是否存在
+    if [ ! -f /etc/systemd/system/gost.service ]; then
+        echo "未找到 /etc/systemd/system/gost.service，请先创建服务文件。"
+        return 1
+    fi
+
+    sudo systemctl enable gost
+    if [ $? -eq 0 ]; then
+        echo "gost 服务已设置为开机自启动。"
+    else
+        echo "gost 服务开机自启动设置失败，请检查 systemd 状态。"
+    fi
 }
 
 # 启动主菜单
