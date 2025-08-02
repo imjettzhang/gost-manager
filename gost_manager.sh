@@ -238,16 +238,14 @@ function view_gost_rules() {
         return 1
     fi
     echo "现有转发规则："
-    jq -r '.ServeNodes[]' "$CONFIG_FILE" | nl | while read -r idx rule; do
-        # 解析协议、监听端口、目标地址、目标端口
-        proto=$(echo "$rule" | awk -F '://' '{print $1}')
-        listen_port=$(echo "$rule" | sed -E 's/^[a-z+]+:\/\/:([0-9]+)\/.*/\\1/' | awk -F'[:/]' '{print $2}')
-        target=$(echo "$rule" | awk -F'/' '{print $2}')
-        target_addr=$(echo "$target" | awk -F':' '{print $1}')
-        target_port=$(echo "$target" | awk -F':' '{print $2}')
-        printf "规则%d: 监听端口: %s, 协议: %s, 目标: %s, 目标端口: %s\n" "$idx" "$listen_port" "$proto" "$target_addr" "$target_port"
-    done
+    jq -r '
+        .ServeNodes[]
+        | capture("^(?<proto>[a-z+]+)://:(?<listen_port>[0-9]+|\\*)/(?<target>.+):(?<target_port>[0-9]+)$")
+        | "监听端口: \(.listen_port), 协议: \(.proto), 目标: \(.target), 目标端口: \(.target_port)"
+    ' "$CONFIG_FILE" | nl -w1 -s': '
 }
+
+
 
 function delete_gost_rules() {
     CONFIG_FILE="/etc/gost/config.json"
