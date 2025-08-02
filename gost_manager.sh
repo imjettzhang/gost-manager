@@ -119,7 +119,7 @@ function install_gost() {
     
     print_info "正在下载 gost $GOST_VERSION [$bit]..."
     if ! wget --no-check-certificate -O "$TEMP_DIR/gost.gz" "$GOST_URL"; then
-        print_error "gost 下载失败，请检查网络连接或手动下载。"
+        print_error "gost 下载失败，请检查网络连接或手动下载"
         read -p "按回车返回主菜单..."
         main_menu
         return 1
@@ -193,7 +193,7 @@ function uninstall_gost() {
         systemctl disable gost.service
         rm -f /etc/systemd/system/gost.service
         systemctl daemon-reload
-        print_success "已移除 systemd 服务。"
+        print_success "已移除 systemd 服务"
     fi
 
     # 删除主程序
@@ -226,9 +226,9 @@ function uninstall_gost() {
 
     # 验证卸载结果
     if ! command -v gost >/dev/null 2>&1 && [ ! -f /usr/local/bin/gost ] && [ ! -f /usr/local/bin/gm ]; then
-        print_success "gost 及相关脚本和软链接已全部卸载完成。"
+        print_success "gost 及相关脚本和软链接已全部卸载完成"
     else
-        print_error "部分文件未能成功删除，请手动检查。"
+        print_error "部分文件未能成功删除，请手动检查"
     fi
 }
 
@@ -238,9 +238,9 @@ function start_gost() {
     print_info "正在启动 gost 服务..."
     sudo systemctl start gost
     if [ $? -eq 0 ]; then
-        print_success "gost 服务已启动。"
+        print_success "gost 服务已启动"
     else
-        print_error "gost 服务启动失败，请检查服务状态。"
+        print_error "gost 服务启动失败，请检查服务状态"
     fi
 }
 
@@ -249,9 +249,9 @@ function stop_gost() {
     print_info "正在停止 gost 服务..."
     sudo systemctl stop gost
     if [ $? -eq 0 ]; then
-        print_success "gost 服务已停止。"
+        print_success "gost 服务已停止"
     else
-        print_error "gost 服务停止失败，请检查服务状态。"
+        print_error "gost 服务停止失败，请检查服务状态"
     fi
 }
 
@@ -261,9 +261,9 @@ function restart_gost() {
     print_info "正在重启 gost 服务..."
     sudo systemctl restart gost
     if [ $? -eq 0 ]; then
-        print_success "gost 服务已成功重启。"
+        print_success "gost 服务已成功重启"
     else
-        print_error "gost 服务重启失败，请检查服务状态。"
+        print_error "gost 服务重启失败，请检查服务状态"
     fi
     print_info "gost 服务状态："
     systemctl status gost
@@ -297,7 +297,7 @@ function add_gost_rules() {
 function view_gost_rules() {
     CONFIG_FILE="/etc/gost/config.json"
     if [ ! -f "$CONFIG_FILE" ]; then
-        print_error "未找到配置文件。"
+        print_error "未找到配置文件"
         return 1
     fi
     echo "现有转发规则："
@@ -313,7 +313,7 @@ function view_gost_rules() {
 function delete_gost_rules() {
     CONFIG_FILE="/etc/gost/config.json"
     if [ ! -f "$CONFIG_FILE" ]; then
-        print_error "未找到配置文件。"
+        print_error "未找到配置文件"
         return 1
     fi
 
@@ -323,7 +323,7 @@ function delete_gost_rules() {
     # 让用户输入要删除的监听端口
     read -p "请输入要删除的监听端口: " del_port
     if [[ ! "$del_port" =~ ^[0-9]+$ ]] || [ "$del_port" -lt 1 ] || [ "$del_port" -gt 65535 ]; then
-        print_error "无效端口号。"
+        print_error "无效端口号"
         return 1
     fi
 
@@ -333,7 +333,7 @@ function delete_gost_rules() {
         .ServeNodes |= map(select(test($port) | not))
     ' "$CONFIG_FILE" > "$tmp" && mv "$tmp" "$CONFIG_FILE"
 
-    print_success "已删除监听端口为 $del_port 的所有规则。"
+    print_success "已删除监听端口为 $del_port 的所有规则"
 
     # 重启 gost 服务
     restart_gost
@@ -516,7 +516,7 @@ function input_gost_target() {
         read -p "请输入目标IP或域名: " target
         # 检查是否为空
         if [[ -z "$target" ]]; then
-            print_error "目标不能为空，请重新输入。"
+            print_error "目标不能为空，请重新输入"
             continue
         fi
         # 如果是IPv6（包含冒号且不是以[开头），自动加上[]
@@ -529,7 +529,7 @@ function input_gost_target() {
         if [[ "$GOST_TARGET" =~ ^\[?[0-9a-fA-F:.]+\]?$ ]] || [[ "$GOST_TARGET" =~ ^[a-zA-Z0-9.-]+$ ]]; then
             break
         else
-            print_error "输入格式不正确，请重新输入。"
+            print_error "输入格式不正确，请重新输入"
         fi
     done
     print_success "已设置目标: $GOST_TARGET"
@@ -540,7 +540,7 @@ function input_gost_target_port() {
     while true; do
         read -p "请输入目标端口 (1-65535): " port
         if [[ ! "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
-            print_error "无效端口号，请输入1-65535之间的数字。"
+            print_error "无效端口号，请输入1-65535之间的数字"
             continue
         fi
         GOST_TARGET_PORT="$port"
@@ -606,15 +606,15 @@ EOF
 function enable_gost_autostart() {
     # 检查 systemd 服务文件是否存在
     if [ ! -f /etc/systemd/system/gost.service ]; then
-        echo "未找到 /etc/systemd/system/gost.service，请先创建服务文件。"
+        echo "未找到 /etc/systemd/system/gost.service，请先创建服务文件"
         return 1
     fi
 
     sudo systemctl enable gost
     if [ $? -eq 0 ]; then
-        print_success "gost 服务已设置为开机自启动。"
+        print_success "gost 服务已设置为开机自启动"
     else
-        print_error "gost 服务开机自启动设置失败，请检查 systemd 状态。"
+        print_error "gost 服务开机自启动设置失败，请检查 systemd 状态"
     fi
 }
 
