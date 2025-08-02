@@ -10,11 +10,24 @@ CONFIG_FILE="/etc/gost/config.json"
 # 菜单相关函数
 function main_menu() {
     clear
+    # 检查 gost 状态
+    if command -v gost >/dev/null 2>&1; then
+        if systemctl is-active --quiet gost; then
+            GOST_STATUS="\033[32m运行中\033[0m"
+        else
+            GOST_STATUS="\033[33m已安装，未运行\033[0m"
+        fi
+    else
+        GOST_STATUS="\033[31m未安装\033[0m"
+    fi
+
     echo "========================="
-    echo "      gost 节点管理      "
+    echo "      GOST 节点管理      "
     echo "========================="
-    echo "1. 安装 gost"
+    echo -e "1. 安装 gost（$GOST_STATUS）"
     echo "2. 卸载 gost"
+    echo "3. 启动 gost"
+    echo "4. 停止 gost"
     echo "5. 重启 gost"
     echo "6. 新增规则"
     echo "7. 删除规则"
