@@ -25,7 +25,6 @@ function main_menu() {
     echo "8. 删除配置"
     echo "————————————"
     echo "9. 定时重启"
-    echo "10. 自定义TLS证书"
     echo "0. 退出"
     read -p "请选择操作: " choice
     case $choice in
@@ -38,7 +37,6 @@ function main_menu() {
         7) view_gost_config ;;
         8) delete_gost_config ;;
         9) schedule_gost_restart ;;
-        10) custom_tls_config ;;
         0) exit 0 ;;
         *) echo "无效选择"; read -p "按回车继续..."; main_menu ;;
     esac
@@ -417,9 +415,14 @@ function input_gost_target() {
             echo "目标不能为空，请重新输入。"
             continue
         fi
-        # 简单校验：IP格式或域名格式
-        if [[ "$target" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || [[ "$target" =~ ^[a-zA-Z0-9.-]+$ ]]; then
+        # 如果是IPv6（包含冒号且不是以[开头），自动加上[]
+        if [[ "$target" =~ : ]] && [[ ! "$target" =~ ^\[.*\]$ ]]; then
+            GOST_TARGET="[$target]"
+        else
             GOST_TARGET="$target"
+        fi
+        # 简单校验：IP格式或域名格式
+        if [[ "$GOST_TARGET" =~ ^\[?[0-9a-fA-F:.]+\]?$ ]] || [[ "$GOST_TARGET" =~ ^[a-zA-Z0-9.-]+$ ]]; then
             break
         else
             echo "输入格式不正确，请重新输入。"
