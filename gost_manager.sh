@@ -20,9 +20,9 @@ function main_menu() {
     echo "4. 停止 gost"
     echo "5. 重启 gost"
     echo "————————————"
-    echo "6. 新增配置"
-    echo "7. 查看配置"
-    echo "8. 删除配置"
+    echo "6. 新增规则"
+    echo "7. 查看规则"
+    echo "8. 删除规则"
     echo "————————————"
     echo "9. 定时重启"
     echo "0. 退出"
@@ -33,9 +33,9 @@ function main_menu() {
         3) start_gost ;;
         4) stop_gost ;;
         5) restart_gost ;;
-        6) add_gost_config ;;
-        7) view_gost_config ;;
-        8) delete_gost_config ;;
+        6) add_gost_rules ;;
+        7) view_gost_rules ;;
+        8) delete_gost_rules ;;
         9) schedule_gost_restart ;;
         0) exit 0 ;;
         *) echo "无效选择"; read -p "按回车继续..."; main_menu ;;
@@ -220,7 +220,7 @@ function restart_gost() {
 }
 
 # 新增gost转发配置
-function add_gost_config() {
+function add_gost_rules() {
     # 新增一条 gost 转发配置
     select_port
     select_gost_protocol
@@ -229,16 +229,53 @@ function add_gost_config() {
     add_gost_rule_and_restart
 }
 
-# 查看现有gost配置
-function view_gost_config() {
-    # 查看所有已存在的 gost 配置
-    echo "正在查看现有 gost 配置..."
+
+# 查看现有转发规则
+function view_gost_rules() {
+    CONFIG_FILE="/etc/gost/config.json"
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo "未找到配置文件。"
+        return 1
+    fi
+    echo "现有转发规则："
+    jq -r '.ServeNodes[]' "$CONFIG_FILE" | nl | while read -r idx rule; do
+        # 解析协议、监听端口、目标地址、目标端口
+        proto=$(echo "$rule" | awk -F '://' '{print $1}')
+        listen_port=$(echo "$rule" | sed -E 's/^[a-z+]+:\/\/:([0-9]+)\/.*/\\1/' | awk -F'[:/]' '{print $2}')
+        target=$(echo "$rule" | awk -F'/' '{print $2}')
+        target_addr=$(echo "$target" | awk -F':' '{print $1}')
+        target_port=$(echo "$target" | awk -F':' '{print $2}')
+        printf "规则%d: 监听端口: %s, 协议: %s, 目标: %s, 目标端口: %s\n" "$idx" "$listen_port" "$proto" "$target_addr" "$target_port"
+    done
 }
 
-# 删除一则gost配置
-function delete_gost_config() {
-    # 删除指定的 gost 配置
-    echo "正在删除 gost 配置..."
+function delete_gost_rules() {
+    CONFIG_FILE="/etc/gost/config.json"
+    if [ ! -f "$CONFIG_FILE" ]; then
+        echo "未找到配置文件。"
+        return 1
+    fi
+
+    # 展示现有规则
+    view_gost_rules
+
+    # 让用户输入要删除的监听端口
+    read -p "请输入要删除的监听端口: " del_port
+    if [[ ! "$del_port" =~ ^[0-9]+$ ]] || [ "$del_port" -lt 1 ] || [ "$del_port" -gt 65535 ]; then
+        echo "无效端口号。"
+        return 1
+    fi
+
+    # 删除对应端口的所有规则
+    tmp=$(mktemp)
+    jq --arg port ":$del_port/" '
+        .ServeNodes |= map(select(test($port) | not))
+    ' "$CONFIG_FILE" > "$tmp" && mv "$tmp" "$CONFIG_FILE"
+
+    echo "已删除监听端口为 $del_port 的所有规则。"
+
+    # 重启 gost 服务
+    restart_gost
 }
 
 # gost定时重启配置
