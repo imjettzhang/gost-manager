@@ -265,6 +265,22 @@ function create_gost_service() {
 
     echo "正在创建 gost systemd 服务文件..."
 
+    # 创建默认配置文件（如不存在）
+    if [ ! -f "$CONFIG_FILE" ]; then
+        mkdir -p /etc/gost
+        cat <<EOF > "$CONFIG_FILE"
+{
+    "Debug": true,
+    "Retries": 0,
+    "ServeNodes": [
+        "udp://127.0.0.1:65532"
+    ]
+}
+EOF
+        echo "已生成默认配置文件：$CONFIG_FILE"
+    fi
+
+    # 创建 systemd 服务文件
     cat <<EOF | sudo tee "$SERVICE_FILE" > /dev/null
 [Unit]
 Description=GOST Proxy Service
@@ -280,8 +296,7 @@ WantedBy=multi-user.target
 EOF
 
     sudo systemctl daemon-reload
-    echo "gost 服务文件已创建：$SERVICE_FILE"
-    echo "你可以使用 'systemctl start gost' 启动服务。"
+    echo "gost 服务已创建"
 }
 
 
