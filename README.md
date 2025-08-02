@@ -1,6 +1,6 @@
 # gost-manager
 
-一个用于管理 gost 节点的 Shell 脚本项目
+一个用于管理 gost 转发的 Shell 脚本项目
 
 ## 一键安装
 
