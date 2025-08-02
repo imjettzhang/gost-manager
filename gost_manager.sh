@@ -108,6 +108,9 @@ function install_gost() {
     fi
 
     
+    # 查找实际的可执行文件
+    GOST_BINARY=$(find . -name "gost-linux-*" -type f -executable | head -1)
+
     # 复制到安装目录
     cp "$GOST_BINARY" "$INSTALL_PATH"
     chmod +x "$INSTALL_PATH"
