@@ -8,6 +8,8 @@ source "$SCRIPT_DIR/common.sh"
 # singbox 节点管理脚本
 
 # 全局配置文件路径
+SERVICE_FILE="/etc/systemd/system/gost.service"
+GOST_BIN="/usr/local/bin/gost"
 CONFIG_FILE="/etc/gost/config.json"
 
 # 菜单相关函数
@@ -227,7 +229,11 @@ function restart_gost() {
 # 新增gost转发配置
 function add_gost_config() {
     # 新增一条 gost 转发配置
-    echo "正在新增 gost 转发配置..."
+    select_port
+    select_gost_protocol
+    input_gost_target
+    input_gost_target_port
+    add_gost_rule_and_restart
 }
 
 # 查看现有gost配置
@@ -248,11 +254,7 @@ function schedule_gost_restart() {
     echo "正在配置 gost 的定时重启任务..."
 }
 
-# 自定义TLS证书配置
-function custom_tls_config() {
-    # 配置自定义的 TLS 证书
-    echo "正在配置自定义的 TLS 证书..."
-}
+
 
 # 检查是否为 root 用户
 function check_root() {
@@ -263,11 +265,83 @@ function check_root() {
     fi
 }
 
-function create_gost_service() {
-    SERVICE_FILE="/etc/systemd/system/gost.service"
-    GOST_BIN="/usr/local/bin/gost"
-    CONFIG_FILE="/etc/gost/config.json"
 
+# 选择端口
+function select_port() {
+    CONFIG_FILE="/etc/gost/config.json"
+    echo "========================="
+    echo "      选择 gost 监听端口"
+    echo "========================="
+    echo "1) 随机端口（默认）"
+    echo "2) 自定义端口"
+    while true; do
+        read -p "请选择端口设置方式 [1/2]: " mode
+        if [[ -z "$mode" ]]; then
+            mode="1"
+        fi
+        case $mode in
+            1)
+                # 随机分配端口
+                local max_attempts=10
+                local attempt=0
+                while [ $attempt -lt $max_attempts ]; do
+                    port=$((2000 + RANDOM % 58001))
+                    # 用 jq 检查 ServeNodes 是否已包含该端口
+                    if [ -f "$CONFIG_FILE" ] && jq -e --arg p "$port" '.ServeNodes[] | select(test(":" + $p + "$"))' "$CONFIG_FILE" >/dev/null; then
+                        ((attempt++))
+                        continue
+                    fi
+                    # 检查系统端口占用
+                    if ss -tuln | grep -q ":$port "; then
+                        ((attempt++))
+                        continue
+                    fi
+                    GOST_PORT=$port
+                    echo "随机选择端口: $GOST_PORT"
+                    break
+                done
+                if [ -z "$GOST_PORT" ]; then
+                    echo "无法找到可用的随机端口，请选择自定义端口"
+                    continue
+                fi
+                ;;
+            2)
+                while true; do
+                    read -p "请输入端口号 (1-65535): " port
+                    if [[ ! "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+                        echo "无效端口号，请输入1-65535之间的数字"
+                        continue
+                    fi
+                    # 用 jq 检查 ServeNodes 是否已包含该端口
+                    if [ -f "$CONFIG_FILE" ] && jq -e --arg p "$port" '.ServeNodes[] | select(test(":" + $p + "$"))' "$CONFIG_FILE" >/dev/null; then
+                        echo "端口 $port 已被 gost 配置使用，请选择其他端口"
+                        continue
+                    fi
+                    if ss -tuln | grep -q ":$port "; then
+                        read -p "端口 $port 可能已被系统其他服务占用，是否继续? (y/n): " confirm
+                        if [[ $confirm =~ ^[Yy]$ ]]; then
+                            GOST_PORT=$port
+                            break
+                        else
+                            continue
+                        fi
+                    else
+                        GOST_PORT=$port
+                        break
+                    fi
+                done
+                ;;
+            *)
+                echo "无效选择，请输入 1 或 2"
+                continue
+                ;;
+        esac
+        break
+    done
+    echo "设置端口: $GOST_PORT"
+}
+
+function create_gost_service() {
     echo "正在创建 gost systemd 服务文件..."
 
     # 创建默认配置文件（如不存在）
@@ -306,6 +380,125 @@ EOF
     echo "gost 服务已启动"
 }
 
+# 选择协议
+function select_gost_protocol() {
+    echo "========================="
+    echo "      选择 gost 协议"
+    echo "========================="
+    echo "1) tcp（默认）"
+    echo "2) udp"
+    echo "3) tcp+udp"
+    while true; do
+        read -p "请选择协议 [1/2/3]: " proto
+        if [[ -z "$proto" ]]; then
+            proto="1"
+        fi
+        case $proto in
+            1)
+                GOST_PROTOCOL="tcp"
+                ;;
+            2)
+                GOST_PROTOCOL="udp"
+                ;;
+            3)
+                GOST_PROTOCOL="tcp+udp"
+                ;;
+            *)
+                echo "无效选择，请输入 1、2 或 3"
+                continue
+                ;;
+        esac
+        break
+    done
+    echo "已选择协议: $GOST_PROTOCOL"
+}
+
+# 输入目标
+function input_gost_target() {
+    while true; do
+        read -p "请输入目标IP或域名: " target
+        # 检查是否为空
+        if [[ -z "$target" ]]; then
+            echo "目标不能为空，请重新输入。"
+            continue
+        fi
+        # 简单校验：IP格式或域名格式
+        if [[ "$target" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]] || [[ "$target" =~ ^[a-zA-Z0-9.-]+$ ]]; then
+            GOST_TARGET="$target"
+            break
+        else
+            echo "输入格式不正确，请重新输入。"
+        fi
+    done
+    echo "已设置目标: $GOST_TARGET"
+}
+
+# 输入目标端口
+function input_gost_target_port() {
+    while true; do
+        read -p "请输入目标端口 (1-65535): " port
+        if [[ ! "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+            echo "无效端口号，请输入1-65535之间的数字。"
+            continue
+        fi
+        GOST_TARGET_PORT="$port"
+        break
+    done
+    echo "已设置目标端口: $GOST_TARGET_PORT"
+}
+
+function add_gost_rule_and_restart() {
+    # 构造新的 ServeNode
+    local new_node=""
+    case "$GOST_PROTOCOL" in
+        tcp)
+            new_node="tcp://:$GOST_PORT/$GOST_TARGET:$GOST_TARGET_PORT"
+            ;;
+        udp)
+            new_node="udp://:$GOST_PORT/$GOST_TARGET:$GOST_TARGET_PORT"
+            ;;
+        tcp+udp)
+            new_node="tcp://:$GOST_PORT/$GOST_TARGET:$GOST_TARGET_PORT"
+            new_node2="udp://:$GOST_PORT/$GOST_TARGET:$GOST_TARGET_PORT"
+            ;;
+        *)
+            echo "未知协议类型: $GOST_PROTOCOL"
+            return 1
+            ;;
+    esac
+
+    # 如果配置文件不存在，先创建一个基础结构
+    if [ ! -f "$CONFIG_FILE" ]; then
+        mkdir -p /etc/gost
+        cat <<EOF > "$CONFIG_FILE"
+{
+    "Debug": true,
+    "Retries": 0,
+    "ServeNodes": []
+}
+EOF
+    fi
+
+    # 添加规则到 ServeNodes
+    if [[ "$GOST_PROTOCOL" == "tcp+udp" ]]; then
+        tmp=$(mktemp)
+        jq --arg node "$new_node" --arg node2 "$new_node2" \
+            '.ServeNodes += [$node, $node2]' "$CONFIG_FILE" > "$tmp" && mv "$tmp" "$CONFIG_FILE"
+    else
+        tmp=$(mktemp)
+        jq --arg node "$new_node" \
+            '.ServeNodes += [$node]' "$CONFIG_FILE" > "$tmp" && mv "$tmp" "$CONFIG_FILE"
+    fi
+
+    echo "已添加规则: $new_node"
+    if [[ "$GOST_PROTOCOL" == "tcp+udp" ]]; then
+        echo "已添加规则: $new_node2"
+    fi
+
+    # 重启 gost 服务
+    restart_gost
+
+}
 
 # 启动主菜单
 
