@@ -1,10 +1,5 @@
 #!/bin/bash
 
-# 引入添加节点脚本
-SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-source "$SCRIPT_DIR/common.sh"
-
-
 # singbox 节点管理脚本
 
 # 全局配置文件路径
