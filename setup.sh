@@ -7,7 +7,7 @@ ZIP_URL="https://github.com/imjettzhang/gost-manager/archive/refs/heads/main.zip
 ZIP_FILE="main.zip"
 PROJECT_DIR="gost-manager-main"
 SCRIPT_NAME="gost_manager.sh"
-LINK_PATH="/usr/local/bin/sb"
+LINK_PATH="/usr/local/bin/gost"
 
 # 清理旧文件和软链接及压缩包
 cleanup_old() {
@@ -59,12 +59,12 @@ main() {
     create_symlink
 
     while true; do
-        read -p "[信息] 请输入 sb 或直接回车启动管理菜单: " user_input
-        if [[ -z "$user_input" || "$user_input" == "sb" ]]; then
-            sb
+        read -p "[信息] 请输入 gost 或直接回车启动管理菜单: " user_input
+        if [[ -z "$user_input" || "$user_input" == "gost" ]]; then
+            gost
             break
         else
-            echo "[错误] 无效输入，请输入 sb 或直接回车。"
+            echo "[错误] 无效输入，请输入 gost 或直接回车。"
         fi
     done
 }
