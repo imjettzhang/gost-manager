@@ -107,26 +107,6 @@ function install_gost() {
         return 1
     fi
 
-    # 检查解压后的结果
-    echo "解压后的内容："
-    ls -la
-    
-    # 查找实际的可执行文件
-    GOST_BINARY=$(find . -name "gost-linux-*" -type f -executable | head -1)
-    
-    if [ -z "$GOST_BINARY" ]; then
-        # 如果没找到，可能是直接解压为 gost 文件
-        if [ -f "gost" ]; then
-            GOST_BINARY="gost"
-        else
-            echo "未找到 gost 可执行文件"
-            echo "当前目录内容："
-            find . -type f
-            return 1
-        fi
-    fi
-
-    echo "找到 gost 可执行文件: $GOST_BINARY"
     
     # 复制到安装目录
     cp "$GOST_BINARY" "$INSTALL_PATH"
@@ -136,14 +116,15 @@ function install_gost() {
     rm -rf "$TEMP_DIR"
 
     if command -v gost >/dev/null 2>&1; then
-        echo "gost $GOST_VERSION 安装成功！"
+        echo "gost 安装成功，版本信息如下："
         gost -V
     else
-        echo "gost 安装失败！PATH 可能需要更新"
-        echo "请尝试直接运行: $INSTALL_PATH -V"
+        echo "gost 安装失败！"
         return 1
     fi
 }
+
+
 # 更新 gost
 function update_gost() {
     # 更新 gost 到最新版本
