@@ -100,8 +100,7 @@ function install_gost() {
     fi
 
     echo "正在下载 gost $GOST_VERSION [$bit]..."
-    wget --no-check-certificate -O /tmp/gost.gz "$GOST_URL"
-    if [ $? -ne 0 ]; then
+    if ! wget --no-check-certificate -O /tmp/gost.gz "$GOST_URL"; then
         echo "gost 下载失败，请检查网络连接或手动下载。"
         return 1
     fi
@@ -122,51 +121,62 @@ function install_gost() {
 # 更新 gost
 function update_gost() {
     # 更新 gost 到最新版本
+    echo "正在更新 gost 到最新版本..."
+    
 }
 
 # 卸载 gost
 function uninstall_gost() {
     # 卸载 gost
+    echo "正在卸载 gost..."
 }
 
 # 启动 gost
 function start_gost() {
     # 启动 gost 服务
+    echo "正在启动 gost 服务..."
 }
 
 # 停止 gost
 function stop_gost() {
     # 停止 gost 服务
+    echo "正在停止 gost 服务..."
 }
 
 # 重启 gost
 function restart_gost() {
     # 重启 gost 服务
+    echo "正在重启 gost 服务..."
 }
 
 # 新增gost转发配置
 function add_gost_config() {
     # 新增一条 gost 转发配置
+    echo "正在新增 gost 转发配置..."
 }
 
 # 查看现有gost配置
 function view_gost_config() {
     # 查看所有已存在的 gost 配置
+    echo "正在查看现有 gost 配置..."
 }
 
 # 删除一则gost配置
 function delete_gost_config() {
     # 删除指定的 gost 配置
+    echo "正在删除 gost 配置..."
 }
 
 # gost定时重启配置
 function schedule_gost_restart() {
     # 配置 gost 的定时重启任务
+    echo "正在配置 gost 的定时重启任务..."
 }
 
 # 自定义TLS证书配置
 function custom_tls_config() {
     # 配置自定义的 TLS 证书
+    echo "正在配置自定义的 TLS 证书..."
 }
 
 # 检查是否为 root 用户
