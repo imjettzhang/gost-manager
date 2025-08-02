@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# singbox 节点管理脚本
+# singbox 节点转发脚本
 
 # 全局配置文件路径
 SERVICE_FILE="/etc/systemd/system/gost.service"
@@ -42,7 +42,7 @@ function main_menu() {
         GOST_STATUS="\033[31m未安装\033[0m"
     fi
     echo "========================="
-    echo "      GOST 节点管理      "
+    echo "      GOST 转发管理      "
     echo "========================="
     echo -e "1. 安装 gost（$GOST_STATUS）"
     echo "2. 卸载 gost"
@@ -102,6 +102,8 @@ function install_gost() {
     if command -v gost >/dev/null 2>&1; then
         INSTALLED_VERSION=$(gost -V 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
         print_info "检测到 gost 已安装，版本：$INSTALLED_VERSION"
+        read -p "按回车返回主菜单..."
+        main_menu
         return 0
     fi
 
@@ -118,6 +120,8 @@ function install_gost() {
     print_info "正在下载 gost $GOST_VERSION [$bit]..."
     if ! wget --no-check-certificate -O "$TEMP_DIR/gost.gz" "$GOST_URL"; then
         print_error "gost 下载失败，请检查网络连接或手动下载。"
+        read -p "按回车返回主菜单..."
+        main_menu
         return 1
     fi
     
@@ -126,6 +130,8 @@ function install_gost() {
    
     if ! gunzip -f gost.gz; then
         print_error "gost 解压失败！"
+        read -p "按回车返回主菜单..."
+        main_menu
         return 1
     fi
    
@@ -259,6 +265,8 @@ function restart_gost() {
     else
         print_error "gost 服务重启失败，请检查服务状态。"
     fi
+    read -p "按回车返回主菜单..."
+    main_menu
 }
 
 
@@ -266,6 +274,8 @@ function restart_gost() {
 function view_gost_logs() {
     print_info "正在显示 gost 实时日志（按 Ctrl+C 退出）..."
     sudo journalctl -u gost -f
+    read -p "按回车返回主菜单..."
+    main_menu
 }
 
 # 新增gost转发配置
@@ -276,6 +286,8 @@ function add_gost_rules() {
     input_gost_target
     input_gost_target_port
     add_gost_rule_and_restart
+    read -p "按回车返回主菜单..."
+    main_menu
 }
 
 
@@ -323,6 +335,8 @@ function delete_gost_rules() {
 
     # 重启 gost 服务
     restart_gost
+    read -p "按回车返回主菜单..."
+    main_menu
 }
 
 # gost定时重启配置
@@ -457,6 +471,8 @@ EOF
     enable_gost_autostart
     # 重启 gost 服务
     restart_gost
+    read -p "按回车返回主菜单..."
+    main_menu
 }
 
 # 选择协议
@@ -498,7 +514,7 @@ function input_gost_target() {
         read -p "请输入目标IP或域名: " target
         # 检查是否为空
         if [[ -z "$target" ]]; then
-            echo "目标不能为空，请重新输入。"
+            print_error "目标不能为空，请重新输入。"
             continue
         fi
         # 如果是IPv6（包含冒号且不是以[开头），自动加上[]
@@ -511,10 +527,10 @@ function input_gost_target() {
         if [[ "$GOST_TARGET" =~ ^\[?[0-9a-fA-F:.]+\]?$ ]] || [[ "$GOST_TARGET" =~ ^[a-zA-Z0-9.-]+$ ]]; then
             break
         else
-            echo "输入格式不正确，请重新输入。"
+            print_error "输入格式不正确，请重新输入。"
         fi
     done
-    echo "已设置目标: $GOST_TARGET"
+    print_success "已设置目标: $GOST_TARGET"
 }
 
 # 输入目标端口
@@ -522,7 +538,7 @@ function input_gost_target_port() {
     while true; do
         read -p "请输入目标端口 (1-65535): " port
         if [[ ! "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
-            echo "无效端口号，请输入1-65535之间的数字。"
+            print_error "无效端口号，请输入1-65535之间的数字。"
             continue
         fi
         GOST_TARGET_PORT="$port"
@@ -594,9 +610,9 @@ function enable_gost_autostart() {
 
     sudo systemctl enable gost
     if [ $? -eq 0 ]; then
-        echo "gost 服务已设置为开机自启动。"
+        print_success "gost 服务已设置为开机自启动。"
     else
-        echo "gost 服务开机自启动设置失败，请检查 systemd 状态。"
+        print_error "gost 服务开机自启动设置失败，请检查 systemd 状态。"
     fi
 }
 
