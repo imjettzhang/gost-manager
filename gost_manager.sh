@@ -7,6 +7,27 @@ SERVICE_FILE="/etc/systemd/system/gost.service"
 GOST_BIN="/usr/local/bin/gost"
 CONFIG_FILE="/etc/gost/config.json"
 
+
+
+# 辅助输出函数
+print_info() {
+    echo -e "\033[36m[信息]\033[0m $1"
+}
+print_success() {
+    echo -e "\033[32m[成功]\033[0m $1"
+}
+print_error() {
+    echo -e "\033[31m[错误]\033[0m $1" >&2
+}
+
+print_warning() {
+    echo -e "\033[33m[警告]\033[0m $1"
+}
+
+print_title() {
+    echo -e "\033[34m=== $1 ===\033[0m"
+}
+
 # 菜单相关函数
 function main_menu() {
     clear
@@ -80,7 +101,7 @@ function install_gost() {
     # 检查是否已安装
     if command -v gost >/dev/null 2>&1; then
         INSTALLED_VERSION=$(gost -V 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+')
-        echo "检测到 gost 已安装，版本：$INSTALLED_VERSION"
+        print_info "检测到 gost 已安装，版本：$INSTALLED_VERSION"
         return 0
     fi
 
@@ -94,17 +115,17 @@ function install_gost() {
     rm -rf "$TEMP_DIR"
     mkdir -p "$TEMP_DIR"
     
-    echo "正在下载 gost $GOST_VERSION [$bit]..."
+    print_info "正在下载 gost $GOST_VERSION [$bit]..."
     if ! wget --no-check-certificate -O "$TEMP_DIR/gost.gz" "$GOST_URL"; then
-        echo "gost 下载失败，请检查网络连接或手动下载。"
+        print_error "gost 下载失败，请检查网络连接或手动下载。"
         return 1
     fi
     
-    echo "正在解压 gost..."
+    print_info "正在解压 gost..."
     cd "$TEMP_DIR"
    
     if ! gunzip -f gost.gz; then
-        echo "gost 解压失败！"
+        print_error "gost 解压失败！"
         return 1
     fi
    
@@ -124,16 +145,16 @@ function install_gost() {
     
     # 检查是否找到了文件
     if [ -z "$GOST_BINARY" ] || [ ! -f "$GOST_BINARY" ]; then
-        echo "错误：找不到 gost 可执行文件！"
-        echo "临时目录内容："
+        print_error "错误：找不到 gost 可执行文件！"
+        print_info "临时目录内容："
         ls -la
         return 1
     fi
    
     # 复制到安装目录
-    echo "正在复制 $GOST_BINARY 执行文件到安装目录..."
+    print_info "正在复制 $GOST_BINARY 执行文件到安装目录..."
     if ! cp "$GOST_BINARY" "$INSTALL_PATH"; then
-        echo "复制文件失败！"
+        print_error "复制文件失败！"
         return 1
     fi
     
@@ -143,12 +164,12 @@ function install_gost() {
     rm -rf "$TEMP_DIR"
     
     if command -v gost >/dev/null 2>&1; then
-        echo "gost 安装成功，版本信息如下："
+        print_success "gost 安装成功，版本信息如下："
         gost -V
         # 创建 gost systemd 服务文件
         create_gost_service
     else
-        echo "gost 安装失败！"
+        print_error "gost 安装失败！"
         return 1
     fi
 }
@@ -158,7 +179,7 @@ function install_gost() {
 
 # 卸载 gost
 function uninstall_gost() {
-    echo "正在卸载 gost..."
+    print_info "正在卸载 gost..."
 
     # 停止并禁用 systemd 服务（如果存在）
     if systemctl list-unit-files | grep -q '^gost.service'; then
@@ -166,84 +187,84 @@ function uninstall_gost() {
         systemctl disable gost.service
         rm -f /etc/systemd/system/gost.service
         systemctl daemon-reload
-        echo "已移除 systemd 服务。"
+        print_success "已移除 systemd 服务。"
     fi
 
     # 删除主程序
     if [ -f /usr/local/bin/gost ]; then
         rm -f /usr/local/bin/gost
-        echo "已删除 /usr/local/bin/gost"
+        print_success "已删除 /usr/local/bin/gost"
     fi
 
     # 删除 gm 软链接
     if [ -f /usr/local/bin/gm ]; then
         rm -f /usr/local/bin/gm
-        echo "已删除 /usr/local/bin/gm"
+        print_success "已删除 /usr/local/bin/gm"
     fi
 
     # 删除配置文件和目录
     if [ -d /etc/gost ]; then
         rm -rf /etc/gost
-        echo "已删除 /etc/gost 配置目录"
+        print_success "已删除 /etc/gost 配置目录"
     fi
 
     # 删除脚本目录（支持家目录和当前目录）
     if [ -d "$HOME/gost-manager-main" ]; then
         rm -rf "$HOME/gost-manager-main"
-        echo "已删除 $HOME/gost-manager-main 脚本目录"
+        print_success "已删除 $HOME/gost-manager-main 脚本目录"
     elif [ -d "./gost-manager-main" ]; then
         rm -rf "./gost-manager-main"
-        echo "已删除 ./gost-manager-main 脚本目录"
+        print_success "已删除 ./gost-manager-main 脚本目录"
     fi
 
 
     # 验证卸载结果
     if ! command -v gost >/dev/null 2>&1 && [ ! -f /usr/local/bin/gost ] && [ ! -f /usr/local/bin/gm ]; then
-        echo "gost 及相关脚本和软链接已全部卸载完成。"
+        print_success "gost 及相关脚本和软链接已全部卸载完成。"
     else
-        echo "部分文件未能成功删除，请手动检查。"
+        print_error "部分文件未能成功删除，请手动检查。"
     fi
 }
 
 
 # 启动 gost
 function start_gost() {
-    echo "正在启动 gost 服务..."
+    print_info "正在启动 gost 服务..."
     sudo systemctl start gost
     if [ $? -eq 0 ]; then
-        echo "gost 服务已启动。"
+        print_success "gost 服务已启动。"
     else
-        echo "gost 服务启动失败，请检查服务状态。"
+        print_error "gost 服务启动失败，请检查服务状态。"
     fi
 }
 
 # 停止 gost
 function stop_gost() {
-    echo "正在停止 gost 服务..."
+    print_info "正在停止 gost 服务..."
     sudo systemctl stop gost
     if [ $? -eq 0 ]; then
-        echo "gost 服务已停止。"
+        print_success "gost 服务已停止。"
     else
-        echo "gost 服务停止失败，请检查服务状态。"
+        print_error "gost 服务停止失败，请检查服务状态。"
     fi
 }
 
 
 # 重启 gost
 function restart_gost() {
-    echo "正在重启 gost 服务..."
+    print_info "正在重启 gost 服务..."
     sudo systemctl restart gost
     if [ $? -eq 0 ]; then
-        echo "gost 服务已成功重启。"
+        print_success "gost 服务已成功重启。"
     else
-        echo "gost 服务重启失败，请检查服务状态。"
+        print_error "gost 服务重启失败，请检查服务状态。"
     fi
 }
 
 
 # 查看 gost 实时日志
 function view_gost_logs() {
-    echo "正在显示 gost 实时日志（按 Ctrl+C 退出）..."
+    print_info "正在显示 gost 实时日志（按 Ctrl+C 退出）..."
     sudo journalctl -u gost -f
 }
 
@@ -262,7 +283,7 @@ function add_gost_rules() {
 function view_gost_rules() {
     CONFIG_FILE="/etc/gost/config.json"
     if [ ! -f "$CONFIG_FILE" ]; then
-        echo "未找到配置文件。"
+        print_error "未找到配置文件。"
         return 1
     fi
     echo "现有转发规则："
@@ -278,7 +299,7 @@ function view_gost_rules() {
 function delete_gost_rules() {
     CONFIG_FILE="/etc/gost/config.json"
     if [ ! -f "$CONFIG_FILE" ]; then
-        echo "未找到配置文件。"
+        print_error "未找到配置文件。"
         return 1
     fi
 
@@ -288,7 +309,7 @@ function delete_gost_rules() {
     # 让用户输入要删除的监听端口
     read -p "请输入要删除的监听端口: " del_port
     if [[ ! "$del_port" =~ ^[0-9]+$ ]] || [ "$del_port" -lt 1 ] || [ "$del_port" -gt 65535 ]; then
-        echo "无效端口号。"
+        print_error "无效端口号。"
         return 1
     fi
 
@@ -298,7 +319,7 @@ function delete_gost_rules() {
         .ServeNodes |= map(select(test($port) | not))
     ' "$CONFIG_FILE" > "$tmp" && mv "$tmp" "$CONFIG_FILE"
 
-    echo "已删除监听端口为 $del_port 的所有规则。"
+    print_success "已删除监听端口为 $del_port 的所有规则。"
 
     # 重启 gost 服务
     restart_gost
@@ -316,7 +337,7 @@ function schedule_gost_restart() {
 function check_root() {
     # 如果不是 root 用户，则提示并退出
     if [ "$(id -u)" != "0" ]; then
-        echo "请以 root 用户身份运行此脚本！"
+        print_error "请以 root 用户身份运行此脚本！"
         exit 1
     fi
 }
@@ -357,7 +378,7 @@ function select_port() {
                     break
                 done
                 if [ -z "$GOST_PORT" ]; then
-                    echo "无法找到可用的随机端口，请选择自定义端口"
+                    print_error "无法找到可用的随机端口，请选择自定义端口"
                     continue
                 fi
                 ;;
@@ -398,7 +419,7 @@ function select_port() {
 }
 
 function create_gost_service() {
-    echo "正在创建 gost systemd 服务文件..."
+    print_info "正在创建 gost systemd 服务文件..."
 
     # 创建默认配置文件（如不存在）
     if [ ! -f "$CONFIG_FILE" ]; then
@@ -412,7 +433,7 @@ function create_gost_service() {
     ]
 }
 EOF
-        echo "已生成默认配置文件：$CONFIG_FILE"
+        print_success "已生成默认配置文件：$CONFIG_FILE"
     fi
 
     # 创建 systemd 服务文件
@@ -431,7 +452,7 @@ WantedBy=multi-user.target
 EOF
 
     sudo systemctl daemon-reload
-    echo "gost 服务已创建"
+    print_success "gost 服务已创建"
     # 设置开机自启动
     enable_gost_autostart
     # 重启 gost 服务
