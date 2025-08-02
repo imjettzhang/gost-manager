@@ -190,15 +190,6 @@ function uninstall_gost() {
     fi
 
 
-    # 清理 shell 启动文件中包含 gm 的 PATH、alias、export 配置
-    for file in ~/.bashrc ~/.bash_profile ~/.zshrc /etc/profile; do
-        if [ -f "$file" ]; then
-            sed -i '/gm/d' "$file"
-            sed -i '/GM/d' "$file"
-            sed -i '/gost/d' "$file"
-        fi
-    done
-
     # 验证卸载结果
     if ! command -v gost >/dev/null 2>&1 && [ ! -f /usr/local/bin/gost ] && [ ! -f /usr/local/bin/gm ]; then
         echo "gost 及相关脚本和软链接已全部卸载完成。"
