@@ -185,6 +185,13 @@ function install_gost() {
 
 # 卸载 gost
 function uninstall_gost() {
+    read -p "确定要卸载 gost 吗？(y/N): " confirm
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        echo "已取消卸载。"
+        read -p "按回车返回主菜单..."
+        main_menu
+        return 0
+    fi
     print_info "正在卸载 gost..."
 
     # 停止并禁用 systemd 服务（如果存在）
