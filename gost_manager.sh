@@ -158,8 +158,30 @@ function update_gost() {
 
 # 卸载 gost
 function uninstall_gost() {
-    # 卸载 gost
     echo "正在卸载 gost..."
+
+    # 停止并禁用 systemd 服务（如果存在）
+    if systemctl list-unit-files | grep -q '^gost.service'; then
+        systemctl stop gost.service
+        systemctl disable gost.service
+        rm -f /etc/systemd/system/gost.service
+        systemctl daemon-reload
+        echo "已移除 systemd 服务。"
+    fi
+
+    # 删除主程序
+    if [ -f /usr/local/bin/gost ]; then
+        rm -f /usr/local/bin/gost
+        echo "已删除 /usr/local/bin/gost"
+    fi
+
+    # 删除配置文件和目录
+    if [ -d /etc/gost ]; then
+        rm -rf /etc/gost
+        echo "已删除 /etc/gost 配置目录"
+    fi
+
+    echo "gost 卸载完成。"
 }
 
 # 启动 gost
