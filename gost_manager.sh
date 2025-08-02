@@ -83,29 +83,64 @@ function check_sys() {
 function install_gost() {
     GOST_VERSION="2.11.2"
     INSTALL_PATH="/usr/local/bin/gost"
+    TEMP_DIR="/tmp/gost_install"
 
     check_sys  # 设置 $bit
 
-
     GOST_URL="https://github.com/ginuerzh/gost/releases/download/v${GOST_VERSION}/gost-linux-${bit}-${GOST_VERSION}.gz"
 
+    # 清理之前的临时文件
+    rm -rf "$TEMP_DIR"
+    mkdir -p "$TEMP_DIR"
 
     echo "正在下载 gost $GOST_VERSION [$bit]..."
-    if ! wget --no-check-certificate -O /tmp/gost.gz "$GOST_URL"; then
+    if ! wget --no-check-certificate -O "$TEMP_DIR/gost.gz" "$GOST_URL"; then
         echo "gost 下载失败，请检查网络连接或手动下载。"
         return 1
     fi
 
     echo "正在解压 gost..."
-    gunzip -f /tmp/gost.gz
-    mv /tmp/gost-linux-${bit}-${GOST_VERSION} "$INSTALL_PATH"
+    cd "$TEMP_DIR"
+    
+    if ! gunzip -f gost.gz; then
+        echo "gost 解压失败！"
+        return 1
+    fi
+
+    # 检查解压后的结果
+    echo "解压后的内容："
+    ls -la
+    
+    # 查找实际的可执行文件
+    GOST_BINARY=$(find . -name "gost-linux-*" -type f -executable | head -1)
+    
+    if [ -z "$GOST_BINARY" ]; then
+        # 如果没找到，可能是直接解压为 gost 文件
+        if [ -f "gost" ]; then
+            GOST_BINARY="gost"
+        else
+            echo "未找到 gost 可执行文件"
+            echo "当前目录内容："
+            find . -type f
+            return 1
+        fi
+    fi
+
+    echo "找到 gost 可执行文件: $GOST_BINARY"
+    
+    # 复制到安装目录
+    cp "$GOST_BINARY" "$INSTALL_PATH"
     chmod +x "$INSTALL_PATH"
+
+    # 清理临时文件
+    rm -rf "$TEMP_DIR"
 
     if command -v gost >/dev/null 2>&1; then
         echo "gost $GOST_VERSION 安装成功！"
         gost -V
     else
-        echo "gost 安装失败！"
+        echo "gost 安装失败！PATH 可能需要更新"
+        echo "请尝试直接运行: $INSTALL_PATH -V"
         return 1
     fi
 }
