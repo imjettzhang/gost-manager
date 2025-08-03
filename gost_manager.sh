@@ -240,6 +240,72 @@ function uninstall_gost() {
 }
 
 
+#选择端口
+select_port() {
+    print_title "设置监听端口"
+    echo "1) 随机端口（默认）"
+    echo "2) 自定义端口"
+    while true; do
+        read -p "请选择端口设置方式: " mode
+        if [[ -z "$mode" ]]; then
+            mode="1"
+        fi
+        case $mode in
+            1)
+                # 随机分配端口
+                local max_attempts=10
+                local attempt=0
+                while [ $attempt -lt $max_attempts ]; do
+                    port=$((2000 + RANDOM % 58001))
+                    if check_port_in_config "$port" && ! ss -tuln | grep -q ":$port "; then
+                        LISTEN_PORT=$port
+                        print_info "随机选择端口: $LISTEN_PORT"
+                        break
+                    fi
+                    ((attempt++))
+                done
+                if [ -z "$LISTEN_PORT" ]; then
+                    print_error "无法找到可用的随机端口，请选择自定义端口"
+                    continue
+                fi
+                ;;
+            2)
+                while true; do
+                    read -p "请输入端口号 (1-65535): " port
+                    if [[ ! "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+                        print_error "无效端口号，请输入1-65535之间的数字"
+                        continue
+                    fi
+                    if ! check_port_in_config "$port"; then
+                        local existing_tag=$(jq -r ".inbounds[] | select(.listen_port == $port) | .tag" "$CONFIG_FILE")
+                        print_error "端口 $port 已被节点 '$existing_tag' 使用，请选择其他端口"
+                        continue
+                    fi
+                    if ss -tuln | grep -q ":$port "; then
+                        print_warning "端口 $port 可能已被系统其他服务占用，是否继续? (y/n): "
+                        read -p "" confirm
+                        if [[ $confirm =~ ^[Yy]$ ]]; then
+                            LISTEN_PORT=$port
+                            break
+                        else
+                            continue
+                        fi
+                    else
+                        LISTEN_PORT=$port
+                        break
+                    fi
+                done
+                ;;
+            *)
+                print_error "无效选择，请输入 1 或 2"
+                continue
+                ;;
+        esac
+        break
+    done
+    print_success "设置端口: $LISTEN_PORT"
+}
+
 # 启动 gost
 function start_gost() {
     print_info "正在启动 gost 服务..."
