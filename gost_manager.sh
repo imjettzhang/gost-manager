@@ -172,10 +172,10 @@ function install_gost() {
     if command -v gost >/dev/null 2>&1; then
         print_success "gost 安装成功，版本信息如下："
         gost -V
-        # 创建 gost systemd 服务文件
-        create_gost_service
         # 启用 BBR
         enable_bbr
+        # 创建 gost systemd 服务文件
+        create_gost_service
     else
         print_error "gost 安装失败！"
         return 1
