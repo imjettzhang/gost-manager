@@ -582,7 +582,7 @@ function input_gost_target() {
         fi
 
         case $mode in
-            1)
+            1)  node_url=""
                 # 目标IP或域名
                 while true; do
                     read -p "请输入目标IP或域名: " target
