@@ -690,9 +690,12 @@ EOF
     fi
 
 
-     # 如果是节点URL模式，输出中专节点URL
+    # 如果是节点URL模式，输出中专节点URL
     if [[ -n "$node_url" && -n "$GOST_PORT" ]]; then
         LOCAL_IP=$(curl -s ifconfig.me)
+        if [[ -z "$LOCAL_IP" ]]; then
+            LOCAL_IP=$(curl -s api.ipify.org)
+        fi
         if [[ "$node_url" =~ @([^:/\?]+):([0-9]+) ]]; then
             relay_url="${node_url/@${BASH_REMATCH[1]}:${BASH_REMATCH[2]}/@$LOCAL_IP:$GOST_PORT}"
             print_success "中专节点URL: $relay_url"
