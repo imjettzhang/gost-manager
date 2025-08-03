@@ -691,14 +691,25 @@ EOF
 
 
     # 如果是节点URL模式，输出中专节点URL
-    LOCAL_IP=$(curl -s ifconfig.me)
+    # 优先获取IPv4
+    LOCAL_IP=$(curl -4 -s ifconfig.me)
     if [[ -z "$LOCAL_IP" ]]; then
-        LOCAL_IP=$(curl -s api.ipify.org)
+        LOCAL_IP=$(curl -4 -s api.ipify.org)
     fi
+
+    # 如果还没获取到IPv4，再尝试IPv6
+    if [[ -z "$LOCAL_IP" ]]; then
+        LOCAL_IP=$(curl -6 -s ifconfig.me)
+        if [[ -z "$LOCAL_IP" ]]; then
+            LOCAL_IP=$(curl -6 -s api64.ipify.org)
+        fi
+    fi
+
     # 如果是IPv6，自动加上[]
     if [[ "$LOCAL_IP" =~ : ]]; then
         LOCAL_IP="[$LOCAL_IP]"
     fi
+
     if [[ "$node_url" =~ @([^:/\?]+):([0-9]+) ]]; then
         relay_url="${node_url/@${BASH_REMATCH[1]}:${BASH_REMATCH[2]}/@$LOCAL_IP:$GOST_PORT}"
         print_success "中专节点URL: $relay_url"
