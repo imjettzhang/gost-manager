@@ -315,14 +315,14 @@ function view_gost_rules() {
     # 计算用户自定义规则数
     rule_count=$((total_count - 1))
 
-
+    print_info "现有 gost 转发规则："
     jq -r '
         .ServeNodes[]
         | capture("^(?<proto>[a-z+]+)://:(?<listen_port>[0-9]+|\\*)/(?<target>.+):(?<target_port>[0-9]+)$")
         | "监听端口: \(.listen_port), 协议: \(.proto), 目标: \(.target), 目标端口: \(.target_port)"
     ' "$CONFIG_FILE" | nl -w1 -s': '
 
-    print_info "共 ${rule_count} 条转发规则"
+    echo "共 ${rule_count} 条转发规则"
 }
 
 
@@ -578,11 +578,11 @@ function input_gost_target() {
 
     while true; do
         echo "请选择目标输入方式："
-        echo "1) 目标IP或域名（默认）"
-        echo "2) 节点URL（自动提取目标地址和端口）"
+        echo "1) 目标IP或域名"
+        echo "2) 节点URL（默认）"
         read -p "请选择 [1/2]: " mode
         if [[ -z "$mode" ]]; then
-            mode="1"
+            mode="2"
         fi
 
         case $mode in
