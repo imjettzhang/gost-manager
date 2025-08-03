@@ -174,6 +174,8 @@ function install_gost() {
         gost -V
         # 创建 gost systemd 服务文件
         create_gost_service
+        # 启用 BBR
+        enable_bbr
     else
         print_error "gost 安装失败！"
         return 1
@@ -735,6 +737,32 @@ function enable_gost_autostart() {
         print_error "gost 服务开机自启动设置失败，请检查 systemd 状态"
     fi
 }
+
+
+function enable_bbr() {
+    echo "正在检查是否已开启 BBR..."
+    if lsmod | grep -q bbr && sysctl net.ipv4.tcp_congestion_control | grep -q bbr; then
+        echo "✅ BBR 已启用！"
+        return 0
+    else
+        echo "未检测到 BBR，开始配置..."
+    fi
+
+    sudo tee -a /etc/sysctl.conf > /dev/null <<EOF
+net.core.default_qdisc=fq
+net.ipv4.tcp_congestion_control=bbr
+EOF
+
+    sudo sysctl -p
+
+    if lsmod | grep -q bbr && sysctl net.ipv4.tcp_congestion_control | grep -q bbr; then
+        echo "✅ BBR 已成功启用！"
+    else
+        echo "❌ BBR 启用失败，请检查内核版本是否 >= 4.9"
+    fi
+}
+
+
 
 # 启动主菜单
 
