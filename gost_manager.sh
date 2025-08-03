@@ -337,6 +337,17 @@ function delete_gost_rules() {
     read -p "请输入要删除的监听端口: " del_port
     if [[ ! "$del_port" =~ ^[0-9]+$ ]] || [ "$del_port" -lt 1 ] || [ "$del_port" -gt 65535 ]; then
         print_error "无效端口号"
+        read -p "按回车返回主菜单..."
+        main_menu
+        return 1
+    fi
+
+
+    # 检查该端口是否存在于规则中
+    if ! jq -e --arg port "$del_port" '.ServeNodes[] | select(test("://:" + $port + "/"))' "$CONFIG_FILE" >/dev/null; then
+        print_error "端口 $del_port 不存在于任何规则中"
+        read -p "按回车返回主菜单..."
+        main_menu
         return 1
     fi
 
