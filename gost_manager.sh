@@ -314,13 +314,15 @@ function view_gost_rules() {
     total_count=$(jq '.ServeNodes | length' "$CONFIG_FILE")
     # 计算用户自定义规则数
     rule_count=$((total_count - 1))
-    print_info "现有转发${rule_count}条规则："
+
 
     jq -r '
         .ServeNodes[]
         | capture("^(?<proto>[a-z+]+)://:(?<listen_port>[0-9]+|\\*)/(?<target>.+):(?<target_port>[0-9]+)$")
         | "监听端口: \(.listen_port), 协议: \(.proto), 目标: \(.target), 目标端口: \(.target_port)"
     ' "$CONFIG_FILE" | nl -w1 -s': '
+
+    print_info "共 ${rule_count} 条转发规则"
 }
 
 
