@@ -726,7 +726,7 @@ EOF
 function enable_gost_autostart() {
     # 检查 systemd 服务文件是否存在
     if [ ! -f /etc/systemd/system/gost.service ]; then
-        echo "未找到 /etc/systemd/system/gost.service，请先创建服务文件"
+        print_error "未找到 /etc/systemd/system/gost.service，请先创建服务文件"
         return 1
     fi
 
@@ -738,14 +738,14 @@ function enable_gost_autostart() {
     fi
 }
 
-
+# 启用 BBR
 function enable_bbr() {
     echo "正在检查是否已开启 BBR..."
     if lsmod | grep -q bbr && sysctl net.ipv4.tcp_congestion_control | grep -q bbr; then
-        echo "✅ BBR 已启用！"
+        print_success "BBR 已启用！"
         return 0
     else
-        echo "未检测到 BBR，开始配置..."
+        print_error "未检测到 BBR，开始配置..."
     fi
 
     sudo tee -a /etc/sysctl.conf > /dev/null <<EOF
