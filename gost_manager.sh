@@ -307,7 +307,11 @@ function view_gost_rules() {
         print_error "未找到配置文件"
         return 1
     fi
-    echo "现有转发规则："
+
+    # 统计规则条数
+    rule_count=$(jq '.ServeNodes | length' "$CONFIG_FILE")
+    echo "现有转发${rule_count}条规则："
+
     jq -r '
         .ServeNodes[]
         | capture("^(?<proto>[a-z+]+)://:(?<listen_port>[0-9]+|\\*)/(?<target>.+):(?<target_port>[0-9]+)$")
@@ -558,7 +562,7 @@ function input_gost_target() {
     while true; do
         echo "请选择目标输入方式："
         echo "1) 目标IP或域名（默认）"
-        echo "2) 输入节点URL（自动提取目标地址和端口）"
+        echo "2) 节点URL（自动提取目标地址和端口）"
         read -p "请选择 [1/2]: " mode
         if [[ -z "$mode" ]]; then
             mode="1"
@@ -570,7 +574,7 @@ function input_gost_target() {
                 while true; do
                     read -p "请输入目标IP或域名: " target
                     if [[ -z "$target" ]]; then
-                        echo "目标不能为空，请重新输入"
+                        print_error "目标不能为空，请重新输入"
                         continue
                     fi
 
@@ -584,14 +588,14 @@ function input_gost_target() {
                         GOST_TARGET="$target"
                         break
                     else
-                        echo "输入格式不正确，请输入合法的IPv4、IPv6或域名"
+                        print_error "输入格式不正确，请输入合法的IPv4、IPv6或域名"
                     fi
                 done
                 # 端口输入
                 while true; do
                     read -p "请输入目标端口 (1-65535): " port
                     if [[ ! "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
-                        echo "无效端口号，请输入1-65535之间的数字"
+                        print_error "无效端口号，请输入1-65535之间的数字"
                         continue
                     fi
                     GOST_TARGET_PORT="$port"
@@ -609,16 +613,16 @@ function input_gost_target() {
                     echo "已自动提取目标地址: $GOST_TARGET, 目标端口: $GOST_TARGET_PORT"
                     break
                 else
-                    echo "未能从URL中提取到目标地址和端口，请检查格式"
+                    print_error "未能从URL中提取到目标地址和端口，请检查格式"
                 fi
                 ;;
             *)
-                echo "无效选择，请输入 1 或 2"
+                print_error "无效选择，请输入 1 或 2"
                 ;;
         esac
     done
-    echo "已设置目标: $GOST_TARGET"
-    echo "已设置目标端口: $GOST_TARGET_PORT"
+    print_success "已设置目标: $GOST_TARGET"
+    print_success "已设置目标端口: $GOST_TARGET_PORT"
 }
 
 
