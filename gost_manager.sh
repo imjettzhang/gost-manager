@@ -740,7 +740,7 @@ function enable_gost_autostart() {
 
 # 启用 BBR
 function enable_bbr() {
-    echo "正在检查是否已开启 BBR..."
+    print_info "正在检查是否已开启 BBR..."
     if lsmod | grep -q bbr && sysctl net.ipv4.tcp_congestion_control | grep -q bbr; then
         print_success "BBR 已启用！"
         return 0
@@ -756,9 +756,9 @@ EOF
     sudo sysctl -p
 
     if lsmod | grep -q bbr && sysctl net.ipv4.tcp_congestion_control | grep -q bbr; then
-        echo "✅ BBR 已成功启用！"
+        print_success "BBR 已成功启用！"
     else
-        echo "❌ BBR 启用失败，请检查内核版本是否 >= 4.9"
+        print_error "BBR 启用失败，请检查内核版本是否 >= 4.9"
     fi
 }
 
