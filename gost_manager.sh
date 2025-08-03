@@ -526,18 +526,40 @@ function input_gost_target() {
             print_error "目标不能为空，请重新输入"
             continue
         fi
-        # 如果是IPv6（包含冒号且不是以[开头），自动加上[]
-        if [[ "$target" =~ : ]] && [[ ! "$target" =~ ^\[.*\]$ ]]; then
+
+        # IPv4 校验
+        if [[ "$target" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            # 检查每段是否在0-255
+            valid=1
+            IFS='.' read -ra parts <<< "$target"
+            for part in "${parts[@]}"; do
+                if (( part < 0 || part > 255 )); then
+                    valid=0
+                    break
+                fi
+            done
+            if (( valid )); then
+                GOST_TARGET="$target"
+                break
+            else
+                print_error "IPv4地址每段必须在0-255之间"
+                continue
+            fi
+        fi
+
+        # IPv6 校验（简单判断含冒号且合法字符）
+        if [[ "$target" =~ ^([0-9a-fA-F:]+)$ && "$target" =~ : ]]; then
             GOST_TARGET="[$target]"
-        else
-            GOST_TARGET="$target"
-        fi
-        # 简单校验：IP格式或域名格式
-        if [[ "$GOST_TARGET" =~ ^\[?[0-9a-fA-F:.]+\]?$ ]] || [[ "$GOST_TARGET" =~ ^[a-zA-Z0-9.-]+$ ]]; then
             break
-        else
-            print_error "输入格式不正确，请重新输入"
         fi
+
+        # 域名校验（必须包含点且不能全是数字）
+        if [[ "$target" =~ ^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$ ]]; then
+            GOST_TARGET="$target"
+            break
+        fi
+
+        print_error "输入格式不正确，请输入合法的IPv4、IPv6或域名"
     done
     print_success "已设置目标: $GOST_TARGET"
 }
@@ -553,7 +575,7 @@ function input_gost_target_port() {
         GOST_TARGET_PORT="$port"
         break
     done
-    echo "已设置目标端口: $GOST_TARGET_PORT"
+    print_success "已设置目标端口: $GOST_TARGET_PORT"
 }
 
 function add_gost_rule_and_restart() {
@@ -571,7 +593,7 @@ function add_gost_rule_and_restart() {
             new_node2="udp://:$GOST_PORT/$GOST_TARGET:$GOST_TARGET_PORT"
             ;;
         *)
-            echo "未知协议类型: $GOST_PROTOCOL"
+            print_error "未知协议类型: $GOST_PROTOCOL"
             return 1
             ;;
     esac
@@ -599,9 +621,9 @@ EOF
             '.ServeNodes += [$node]' "$CONFIG_FILE" > "$tmp" && mv "$tmp" "$CONFIG_FILE"
     fi
 
-    echo "已添加规则: $new_node"
+    print_success "已添加规则: $new_node"
     if [[ "$GOST_PROTOCOL" == "tcp+udp" ]]; then
-        echo "已添加规则: $new_node2"
+        print_success "已添加规则: $new_node2"
     fi
 
     # 重启 gost 服务
