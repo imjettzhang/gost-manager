@@ -519,50 +519,65 @@ function select_gost_protocol() {
 
 # 输入目标
 function input_gost_target() {
+    # 检查IPv4地址是否合法
+    is_valid_ipv4() {
+        local ip=$1
+        if [[ $ip =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            local IFS='.'
+            local -a ip_parts=($ip)
+            for part in "${ip_parts[@]}"; do
+                if ((part < 0 || part > 255)); then
+                    return 1
+                fi
+            done
+            return 0
+        fi
+        return 1
+    }
+
+    # 检查IPv6地址是否合法
+    is_valid_ipv6() {
+        local ip=$1
+        # 简单但实用的IPv6正则
+        if [[ $ip =~ ^([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}$ ]] || \
+           [[ $ip =~ ^::([0-9a-fA-F]{0,4}:){0,6}[0-9a-fA-F]{0,4}$ ]] || \
+           [[ $ip =~ ^([0-9a-fA-F]{0,4}:){1,6}:([0-9a-fA-F]{0,4}:){0,5}[0-9a-fA-F]{0,4}$ ]] || \
+           [[ $ip =~ ^([0-9a-fA-F]{0,4}:){1,7}:$ ]] || \
+           [[ $ip == "::" ]]; then
+            return 0
+        fi
+        return 1
+    }
+
+    # 检查域名是否合法
+    is_valid_domain() {
+        local domain=$1
+        [[ $domain =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$ ]]
+    }
+
     while true; do
         read -p "请输入目标IP或域名: " target
-        # 检查是否为空
         if [[ -z "$target" ]]; then
             print_error "目标不能为空，请重新输入"
             continue
         fi
 
-        # IPv4 校验
-        if [[ "$target" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-            # 检查每段是否在0-255
-            valid=1
-            IFS='.' read -ra parts <<< "$target"
-            for part in "${parts[@]}"; do
-                if (( part < 0 || part > 255 )); then
-                    valid=0
-                    break
-                fi
-            done
-            if (( valid )); then
-                GOST_TARGET="$target"
-                break
-            else
-                print_error "IPv4地址每段必须在0-255之间"
-                continue
-            fi
-        fi
-
-        # IPv6 校验（简单判断含冒号且合法字符）
-        if [[ "$target" =~ ^([0-9a-fA-F:]+)$ && "$target" =~ : ]]; then
-            GOST_TARGET="[$target]"
-            break
-        fi
-
-        # 域名校验（必须包含点且不能全是数字）
-        if [[ "$target" =~ ^([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}$ ]]; then
+        if is_valid_ipv4 "$target"; then
             GOST_TARGET="$target"
             break
+        elif is_valid_ipv6 "$target"; then
+            GOST_TARGET="[$target]"
+            break
+        elif is_valid_domain "$target"; then
+            GOST_TARGET="$target"
+            break
+        else
+            print_error "输入格式不正确，请输入合法的IPv4、IPv6或域名"
         fi
-
-        print_error "输入格式不正确，请输入合法的IPv4、IPv6或域名"
     done
     print_success "已设置目标: $GOST_TARGET"
 }
+
 
 # 输入目标端口
 function input_gost_target_port() {
