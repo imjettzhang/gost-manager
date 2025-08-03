@@ -558,27 +558,63 @@ function input_gost_target() {
     }
 
     while true; do
-        read -p "请输入目标IP或域名: " target
-        if [[ -z "$target" ]]; then
-            print_error "目标不能为空，请重新输入"
-            continue
+        echo "请选择目标输入方式："
+        echo "1) 目标IP或域名（默认）"
+        echo "2) 输入节点URL（自动提取目标地址和端口）"
+        read -p "请选择 [1/2]: " mode
+        if [[ -z "$mode" ]]; then
+            mode="1"
         fi
 
-        if is_valid_ipv4 "$target"; then
-            GOST_TARGET="$target"
-            break
-        elif is_valid_ipv6 "$target"; then
-            GOST_TARGET="[$target]"
-            break
-        elif is_valid_domain "$target"; then
-            GOST_TARGET="$target"
-            break
-        else
-            print_error "输入格式不正确，请输入合法的IPv4、IPv6或域名"
-        fi
+        case $mode in
+            1)
+                # 目标IP或域名
+                while true; do
+                    read -p "请输入目标IP或域名: " target
+                    if [[ -z "$target" ]]; then
+                        echo "目标不能为空，请重新输入"
+                        continue
+                    fi
+
+                    if is_valid_ipv4 "$target"; then
+                        GOST_TARGET="$target"
+                        break
+                    elif is_valid_ipv6 "$target"; then
+                        GOST_TARGET="[$target]"
+                        break
+                    elif is_valid_domain "$target"; then
+                        GOST_TARGET="$target"
+                        break
+                    else
+                        echo "输入格式不正确，请输入合法的IPv4、IPv6或域名"
+                    fi
+                done
+                break
+                ;;
+            2)
+                # 输入节点URL
+                read -p "请输入节点URL: " node_url
+                # 提取 @ 后面的域名和端口
+                if [[ "$node_url" =~ @([^:/\?]+):([0-9]+) ]]; then
+                    GOST_TARGET="${BASH_REMATCH[1]}"
+                    GOST_TARGET_PORT="${BASH_REMATCH[2]}"
+                    echo "已自动提取目标地址: $GOST_TARGET, 目标端口: $GOST_TARGET_PORT"
+                    break
+                else
+                    echo "未能从URL中提取到目标地址和端口，请检查格式"
+                fi
+                ;;
+            *)
+                echo "无效选择，请输入 1 或 2"
+                ;;
+        esac
     done
-    print_success "已设置目标: $GOST_TARGET"
+    echo "已设置目标: $GOST_TARGET"
+    if [[ -n "$GOST_TARGET_PORT" ]]; then
+        echo "已设置目标端口: $GOST_TARGET_PORT"
+    fi
 }
+
 
 
 # 输入目标端口
