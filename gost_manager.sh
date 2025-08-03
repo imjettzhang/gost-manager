@@ -309,7 +309,7 @@ function view_gost_rules() {
     fi
 
     # 统计规则条数
-    rule_count=$(jq '.ServeNodes | length' "$CONFIG_FILE")
+    rule_count=$(jq '.ServeNodes | length' "$CONFIG_FILE")-1
     echo "现有转发${rule_count}条规则："
 
     jq -r '
