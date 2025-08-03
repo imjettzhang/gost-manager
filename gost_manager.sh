@@ -549,10 +549,12 @@ function input_gost_target() {
         return 1
     }
 
-    # 检查域名是否合法
+    # 更严格的域名校验
     is_valid_domain() {
         local domain=$1
-        [[ $domain =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*$ ]]
+        # 必须包含点，且不能全是数字
+        [[ $domain =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$ ]] && \
+        [[ ! $domain =~ ^[0-9]+$ ]]
     }
 
     while true; do
