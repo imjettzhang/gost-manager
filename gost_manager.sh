@@ -745,7 +745,7 @@ function enable_bbr() {
         print_success "BBR 已启用！"
         return 0
     else
-        print_error "未检测到 BBR，开始配置..."
+        print_warning "未检测到 BBR，开始配置..."
     fi
 
     sudo tee -a /etc/sysctl.conf > /dev/null <<EOF
