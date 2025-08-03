@@ -293,7 +293,6 @@ function add_gost_rules() {
     select_port
     select_gost_protocol
     input_gost_target
-    input_gost_target_port
     add_gost_rule_and_restart
     read -p "按回车返回主菜单..."
     main_menu
@@ -367,79 +366,109 @@ function check_root() {
 
 
 # 选择端口
-function select_port() {
-    CONFIG_FILE="/etc/gost/config.json"
-    echo "========================="
-    echo "      选择 gost 监听端口"
-    echo "========================="
-    echo "1) 随机端口（默认）"
-    echo "2) 自定义端口"
+function input_gost_target() {
+    # 检查IPv4地址是否合法
+    is_valid_ipv4() {
+        local ip=$1
+        if [[ $ip =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
+            local IFS='.'
+            local -a ip_parts=($ip)
+            for part in "${ip_parts[@]}"; do
+                if ((part < 0 || part > 255)); then
+                    return 1
+                fi
+            done
+            return 0
+        fi
+        return 1
+    }
+
+    # 检查IPv6地址是否合法
+    is_valid_ipv6() {
+        local ip=$1
+        if [[ $ip =~ ^([0-9a-fA-F]{0,4}:){1,7}[0-9a-fA-F]{0,4}$ ]] || \
+           [[ $ip =~ ^::([0-9a-fA-F]{0,4}:){0,6}[0-9a-fA-F]{0,4}$ ]] || \
+           [[ $ip =~ ^([0-9a-fA-F]{0,4}:){1,6}:([0-9a-fA-F]{0,4}:){0,5}[0-9a-fA-F]{0,4}$ ]] || \
+           [[ $ip =~ ^([0-9a-fA-F]{0,4}:){1,7}:$ ]] || \
+           [[ $ip == "::" ]]; then
+            return 0
+        fi
+        return 1
+    }
+
+    # 更严格的域名校验
+    is_valid_domain() {
+        local domain=$1
+        [[ $domain =~ ^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)+$ ]] && \
+        [[ ! $domain =~ ^[0-9]+$ ]]
+    }
+
     while true; do
-        read -p "请选择端口设置方式 [1/2]: " mode
+        echo "请选择目标输入方式："
+        echo "1) 目标IP或域名（默认）"
+        echo "2) 节点URL（自动提取目标地址和端口）"
+        read -p "请选择 [1/2]: " mode
         if [[ -z "$mode" ]]; then
             mode="1"
         fi
+
         case $mode in
             1)
-                # 随机分配端口
-                local max_attempts=10
-                local attempt=0
-                while [ $attempt -lt $max_attempts ]; do
-                    port=$((2000 + RANDOM % 58001))
-                    # 用 jq 检查 ServeNodes 是否已包含该端口
-                    if [ -f "$CONFIG_FILE" ] && jq -e --arg p "$port" '.ServeNodes[] | select(test(":" + $p + "$"))' "$CONFIG_FILE" >/dev/null; then
-                        ((attempt++))
+                # 目标IP或域名
+                while true; do
+                    read -p "请输入目标IP或域名: " target
+                    if [[ -z "$target" ]]; then
+                        print_error "目标不能为空，请重新输入"
                         continue
                     fi
-                    # 检查系统端口占用
-                    if ss -tuln | grep -q ":$port "; then
-                        ((attempt++))
+
+                    if is_valid_ipv4 "$target"; then
+                        GOST_TARGET="$target"
+                        break
+                    elif is_valid_ipv6 "$target"; then
+                        GOST_TARGET="[$target]"
+                        break
+                    elif is_valid_domain "$target"; then
+                        GOST_TARGET="$target"
+                        break
+                    else
+                        print_error "输入格式不正确，请输入合法的IPv4、IPv6或域名"
+                    fi
+                done
+                # 端口输入
+                while true; do
+                    read -p "请输入目标端口 (1-65535): " port
+                    if [[ ! "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
+                        print_error "无效端口号，请输入1-65535之间的数字"
                         continue
                     fi
-                    GOST_PORT=$port
-                    echo "随机选择端口: $GOST_PORT"
+                    GOST_TARGET_PORT="$port"
                     break
                 done
-                if [ -z "$GOST_PORT" ]; then
-                    print_error "无法找到可用的随机端口，请选择自定义端口"
-                    continue
-                fi
+                break
                 ;;
             2)
-                while true; do
-                    read -p "请输入端口号 (1-65535): " port
-                    if [[ ! "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
-                        echo "无效端口号，请输入1-65535之间的数字"
-                        continue
-                    fi
-                    # 用 jq 检查 ServeNodes 是否已包含该端口
-                    if [ -f "$CONFIG_FILE" ] && jq -e --arg p "$port" '.ServeNodes[] | select(test(":" + $p + "$"))' "$CONFIG_FILE" >/dev/null; then
-                        echo "端口 $port 已被 gost 配置使用，请选择其他端口"
-                        continue
-                    fi
-                    if ss -tuln | grep -q ":$port "; then
-                        read -p "端口 $port 可能已被系统其他服务占用，是否继续? (y/n): " confirm
-                        if [[ $confirm =~ ^[Yy]$ ]]; then
-                            GOST_PORT=$port
-                            break
-                        else
-                            continue
-                        fi
-                    else
-                        GOST_PORT=$port
-                        break
-                    fi
-                done
+                # 输入节点URL
+                read -p "请输入节点URL: " node_url
+                # 提取 @ 后面的域名和端口
+                if [[ "$node_url" =~ @([^:/\?]+):([0-9]+) ]]; then
+                    GOST_TARGET="${BASH_REMATCH[1]}"
+                    GOST_TARGET_PORT="${BASH_REMATCH[2]}"
+                    print_success "已自动提取目标地址: $GOST_TARGET, 目标端口: $GOST_TARGET_PORT"
+                    break
+                else
+                    print_error "未能从URL中提取到目标地址和端口，请检查格式"
+                fi
                 ;;
             *)
-                echo "无效选择，请输入 1 或 2"
-                continue
+                print_error "无效选择，请输入 1 或 2"
                 ;;
         esac
-        break
     done
-    echo "设置端口: $GOST_PORT"
+    print_success "已设置目标: $GOST_TARGET"
+    print_success "已设置目标端口: $GOST_TARGET_PORT"
 }
+
 
 function create_gost_service() {
     print_info "正在创建 gost systemd 服务文件..."
@@ -617,19 +646,7 @@ function input_gost_target() {
 
 
 
-# 输入目标端口
-function input_gost_target_port() {
-    while true; do
-        read -p "请输入目标端口 (1-65535): " port
-        if [[ ! "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1 ] || [ "$port" -gt 65535 ]; then
-            print_error "无效端口号，请输入1-65535之间的数字"
-            continue
-        fi
-        GOST_TARGET_PORT="$port"
-        break
-    done
-    print_success "已设置目标端口: $GOST_TARGET_PORT"
-}
+
 
 function add_gost_rule_and_restart() {
     # 构造新的 ServeNode
